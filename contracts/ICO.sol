@@ -1,8 +1,8 @@
 pragma solidity ^0.4.11;
 
 
-import 'zeppelin-solidity/contracts/lifecycle/Pausable.sol';
-import 'zeppelin-solidity/contracts/payment/PullPayment.sol';
+import '../framework/contracts/lifecycle/Pausable.sol';
+import '../framework/contracts/payment/PullPayment.sol';
 import './METoken.sol';
 
 contract ICO is Pausable, PullPayment {
