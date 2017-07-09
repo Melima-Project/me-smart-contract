@@ -1,8 +1,8 @@
 pragma solidity ^0.4.11;
 
 
-import '../framework/contracts/token/StandardToken.sol';
-import '../framework/contracts/ownership/Ownable.sol';
+import '../framework/zeppelin-solidity/contracts/token/StandardToken.sol';
+import '../framework/zeppelin-solidity/contracts/ownership/Ownable.sol';
 
 
 contract METoken is StandardToken, Ownable {

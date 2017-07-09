@@ -1,8 +1,8 @@
 pragma solidity ^0.4.11;
 
 
-import '../framework/contracts/lifecycle/Pausable.sol';
-import '../framework/contracts/payment/PullPayment.sol';
+import '../framework/zeppelin-solidity/contracts/lifecycle/Pausable.sol';
+import '../framework/zeppelin-solidity/contracts/payment/PullPayment.sol';
 import './METoken.sol';
 
 contract ICO is Pausable, PullPayment {
@@ -10,8 +10,8 @@ contract ICO is Pausable, PullPayment {
     using SafeMath for uint;
 
     struct Investor {
-    uint coinReceived;
-    uint coinSent;
+    uint tokenReceived;
+    uint tokenSent;
     }
 
     // ICO Parameters
@@ -19,8 +19,6 @@ contract ICO is Pausable, PullPayment {
     uint public constant MIN_TARGET = 20000000 * 10 ** 18; // 20,000,000 ME
     /* Maximum number of ME Tokens to sell */
     uint public constant MAX_TARGET = 50000000 * 10 ** 18; // 50,000,000 ME
-    /* ME Tokens reserved for developers */
-    uint public constant DEV_RESERVED = 1000000 * 10 ** 18; // 1,000,000 ME
     /* Number of ME Tokens per Ether */
     uint public constant ME_PER_UBQ = 100;
     /* ICO full run period */
@@ -39,7 +37,7 @@ contract ICO is Pausable, PullPayment {
     /* Number of UBQ received */
     uint public ubqReceived;
     /* Number of ME Tokens sent to investors */
-    uint public coinSentToUBQ;
+    uint public tokenSentToUBQ;
     /* ICO start time */
     uint public startTime;
     /* ICO end time */
@@ -52,8 +50,8 @@ contract ICO is Pausable, PullPayment {
     mapping (address => Investor) public investors;
 
     // Modifiers
-    modifier minTargetReached() {
-        if ((now < endTime) || coinSentToUBQ >= MIN_TARGET) throw;
+    modifier minTargetNotReached() {
+        if ((now < endTime) || tokenSentToUBQ >= MIN_TARGET) throw;
         _;
     }
 
@@ -63,9 +61,9 @@ contract ICO is Pausable, PullPayment {
     }
 
     // Events
-    event LogReceivedUBQ(address addr, uint value);
+    event LogReceivedUbq(address addr, uint value);
 
-    event LogUbqEmited(address indexed from, uint amount);
+    event LogUbqEmitted(address indexed from, uint amount);
 
     // Constructor
     function ICO(address _METokenAddress, address _to) {
@@ -73,8 +71,8 @@ contract ICO is Pausable, PullPayment {
         multisigWallet = _to;
     }
 
-    // The fallback function corresponds to a donation in ETH
-    function() stopInEmergency respectTimeFrame payable {
+    // The fallback function corresponds to a donation in UBQ
+    function() whenNotPaused respectTimeFrame payable {
         receiveUbq(msg.sender);
     }
 
@@ -93,31 +91,31 @@ contract ICO is Pausable, PullPayment {
 
         uint ubqToSend = bonus(msg.value.mul(ME_PER_UBQ).div(1 ether));
         // Calculate ME Tokens amount per 1 UBQ
-        if (ubqToSend.add(coinSentToUBQ) > MAX_TARGET) throw;
+        if (ubqToSend.add(tokenSentToUBQ) > MAX_TARGET) throw;
 
         Investor investor = investors[beneficiary];
         token.transfer(beneficiary, ubqToSend);
         // Transfer ME Tokens right now
 
-        investor.coinSent = investor.coinSent.add(ubqToSend);
-        investor.coinReceived = investor.coinReceived.add(msg.value);
+        investor.tokenSent = investor.tokenSent.add(ubqToSend);
+        investor.tokenReceived = investor.tokenReceived.add(msg.value);
         // Update amount collected during the ICO by the investor
 
         ubqReceived = ubqReceived.add(msg.value);
         // Update the total amount collected during the ICO
-        coinSentToUBQ = coinSentToUBQ.add(ubqToSend);
+        tokenSentToUBQ = tokenSentToUBQ.add(ubqToSend);
 
         // Send events
-        LogUBQEmitted(msg.sender, ubqToSend);
-        LogReceivedUBQ(beneficiary, ubqReceived);
+        LogUbqEmitted(msg.sender, ubqToSend);
+        LogReceivedUbq(beneficiary, ubqReceived);
     }
 
     // Compute the bonus
     function bonus(uint amount) internal constant returns (uint) {
-        if (now < startTime.add(5 days) && amount <= 1000) {
+        if (now < startTime.add(5 days) && amount <= 10000) {
             return amount + FIVE_DAY_BONUS + NOVICE_INVEST_BONUS;
         }
-        else if (now < startTime.add(5 days) && amount > 1000) {
+        else if (now < startTime.add(5 days) && amount > 10000) {
             return amount + FIVE_DAY_BONUS;
         }
         return amount;
@@ -128,14 +126,14 @@ contract ICO is Pausable, PullPayment {
     function finalize() onlyOwner public {
 
         if (now < endTime) {
-            if (coinSentToUBQ == MAX_TARGET) {
+            if (tokenSentToUBQ == MAX_TARGET) {
             }
             else {
                 throw;
             }
         }
 
-        if (coinSentToUBQ < MIN_TARGET && now < endTime + 15 days) throw;
+        if (tokenSentToUBQ < MIN_TARGET && now < endTime + 15 days) throw;
         // If MIN_TARGET is not reached investors have 15 days to get refund before we can finalise
         if (!multisigWallet.send(this.balance)) throw;
         // Move the remaining UBQ to the multisig wallet
@@ -163,22 +161,22 @@ contract ICO is Pausable, PullPayment {
 
     // Transfer remains to owner in case is impossible to do min invest
     function getRemainTokens() onlyOwner public {
-        var remains = MAX_TARGET - coinSentToUBQ;
+        var remains = MAX_TARGET - tokenSentToUBQ;
         uint minTokensToSell = bonus(MIN_INVEST_UBQ.mul(ME_PER_UBQ) / (1 ether));
 
         if (remains > minTokensToSell) throw;
 
-        Investor investor = investor[owner];
+        Investor investor = investors[owner];
         token.transfer(owner, remains);
         // Transfer ME Tokens right now
 
-        investor.coinSent = backer.coinSent.add(remains);
+        investor.tokenSent = investor.tokenSent.add(remains);
 
-        coinSentToUBQ = coinSentToUBQ.add(remains);
+        tokenSentToUBQ = tokenSentToUBQ.add(remains);
 
         // Send events
         LogUbqEmitted(this, remains);
-        LogReceivedETH(owner, ubqReceived);
+        LogReceivedUbq(owner, ubqReceived);
     }
 
 
@@ -189,9 +187,9 @@ contract ICO is Pausable, PullPayment {
        * 3) Investor call the "withdrawPayments" function of the ICO contract to get a refund in UBQ
     */
 
-    function refund(uint _value) minCapNotReached public {
+    function refund(uint _value) minTargetNotReached public {
 
-        if (_value != backers[msg.sender].coinSent) throw;
+        if (_value != investors[msg.sender].tokenSent) throw;
         // compare value from investor balance
 
         token.transferFrom(msg.sender, address(this), _value);
@@ -200,8 +198,8 @@ contract ICO is Pausable, PullPayment {
         if (!token.burn(_value)) throw;
         // token sent for refund are burnt
 
-        uint UBQToSend = investors[msg.sender].coinReceived;
-        investors[msg.sender].coinReceived = 0;
+        uint UBQToSend = investors[msg.sender].tokenReceived;
+        investors[msg.sender].tokenReceived = 0;
 
         if (UBQToSend > 0) {
             asyncSend(msg.sender, UBQToSend);
