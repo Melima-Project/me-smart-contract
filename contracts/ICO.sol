@@ -5,6 +5,7 @@ import '../framework/zeppelin-solidity/contracts/lifecycle/Pausable.sol';
 import '../framework/zeppelin-solidity/contracts/payment/PullPayment.sol';
 import './METoken.sol';
 
+
 contract ICO is Pausable, PullPayment {
 
     using SafeMath for uint;
@@ -18,17 +19,18 @@ contract ICO is Pausable, PullPayment {
     /* Minimum number of ME Tokens to sell */
     uint public constant MIN_TARGET = 20000000 * 10 ** 18; // 20,000,000 ME
     /* Maximum number of ME Tokens to sell */
-    uint public constant MAX_TARGET = 50000000 * 10 ** 18; // 50,000,000 ME
+    uint public constant MAX_TARGET = 50000000 * 10 ** 18; // 50,000,000 ME */
     /* Number of ME Tokens per Ether */
-    uint public constant ME_PER_UBQ = 100;
+    uint public constant ME_PER_UBQ = 100 * 10 ** 18; // 100 ME
     /* ICO full run period */
     uint public constant ICO_ENDS_IN = 30 days;
     /* Minimum amount to invest */
     uint public constant MIN_INVEST_UBQ = 100 finney; // 0.1 UBQ
     /* First 5 days bonus + 20 ME */
-    uint public constant FIVE_DAY_BONUS = 20;
+    uint public constant FIVE_DAY_BONUS = 20 * 10 ** 18; // 20 ME
     /* Bonus for <= 10 UBQ investments + 30 ME */
-    uint public constant NOVICE_INVEST_BONUS = 30;
+    uint public constant NOVICE_INVEST_BONUS = 30 * 10 ** 18; // 30 ME
+    uint public constant ONE_STAKE = 10000000000000000000000; // 10,000 ME
 
     // Variables
     METoken public token;
@@ -61,9 +63,9 @@ contract ICO is Pausable, PullPayment {
     }
 
     // Events
-    event LogReceivedUbq(address addr, uint value);
+    event LogReceivedUBQ(address addr, uint value);
 
-    event LogUbqEmitted(address indexed from, uint amount);
+    event LogTokensEmitted(address indexed from, uint amount);
 
     // Constructor
     function ICO(address _METokenAddress, address _to) {
@@ -106,21 +108,16 @@ contract ICO is Pausable, PullPayment {
         tokenSentToUBQ = tokenSentToUBQ.add(ubqToSend);
 
         // Send events
-        LogUbqEmitted(msg.sender, ubqToSend);
-        LogReceivedUbq(beneficiary, ubqReceived);
+        LogTokensEmitted(msg.sender, ubqToSend);
+        LogReceivedUBQ(beneficiary, ubqReceived);
     }
 
-    // Compute the bonus
     function bonus(uint amount) internal constant returns (uint) {
-        if (now < startTime.add(5 days) && amount <= 10000) {
-            return amount + FIVE_DAY_BONUS + NOVICE_INVEST_BONUS;
-        }
-        else if (now < startTime.add(5 days) && amount > 10000) {
-            return amount + FIVE_DAY_BONUS;
-        }
+        if (amount <= ONE_STAKE && (now < startTime.add(5 days))) return amount + FIVE_DAY_BONUS + NOVICE_INVEST_BONUS;
+        else if (amount > ONE_STAKE && (now < startTime.add(5 days))) return amount + FIVE_DAY_BONUS;
+        else if (amount <= ONE_STAKE && (now > startTime.add(5 days))) return amount + NOVICE_INVEST_BONUS;
         return amount;
     }
-
 
     // Finish the ICO, should be called after the refund period
     function finalize() onlyOwner public {
@@ -175,8 +172,8 @@ contract ICO is Pausable, PullPayment {
         tokenSentToUBQ = tokenSentToUBQ.add(remains);
 
         // Send events
-        LogUbqEmitted(this, remains);
-        LogReceivedUbq(owner, ubqReceived);
+        LogTokensEmitted(this, remains);
+        LogReceivedUBQ(owner, ubqReceived);
     }
 
 

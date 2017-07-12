@@ -12,8 +12,15 @@ contract METoken is StandardToken, Ownable {
     string public constant symbol = "ME";
     uint8 public constant decimals = 18;
 
-    function MeToken() {
-        totalSupply = 51000000 * 10 ** 18;
+    /* Maximum number of ME Tokens to sell */
+    uint public constant MAX_TARGET = 50000000 * 10 ** 18; // 50,000,000 ME
+    /* Reserved for developers, commit reward program and etc */
+    uint public constant DEV_RESERVED = 1000000 * 10 ** 18; // 1,000,000 ME
+    /* Affiliate and social distribution program */
+    uint public constant AFFILIATE_PROGRAM = 100000 * 10 ** 18; // 100,000 ME
+
+    function METoken() {
+        totalSupply = MAX_TARGET + DEV_RESERVED + AFFILIATE_PROGRAM; // 51,100,000 ME
         balances[msg.sender] = totalSupply;
     }
 

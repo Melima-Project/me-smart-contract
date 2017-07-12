@@ -1,9 +1,9 @@
 var METoken = artifacts.require('./METoken.sol');
 var ICO = artifacts.require('./ICO.sol');
 
-var TOTAL_TOKENS = 51000000000000000000;
-var MAX_TARGET = 50000000000000000000;
-var ME_PER_UBQ = 100000000000000000000;
+var TOTAL_TOKENS = 51100000000000000000000000; // 51,100,000 ME
+var MAX_TARGET = 50000000000000000000000000; // 50,000,000 ME
+var ME_PER_UBQ = 100000000000000000000; // 100 ME
 var FIVE_DAYS = 5 * 24 * 60 * 60;
 
 contract('FastFlow', function(accounts) {
@@ -44,12 +44,12 @@ contract('FastFlow', function(accounts) {
 
   }
 
-  it("Put 51,000,000 METokens in the owner account", function() {
+  it("Put 51,100,000 METokens in the owner account", function() {
     return printBalance().then(function() {
       return METoken.deployed().then(function(instance) {
         return instance.balanceOf.call(owner);
       }).then(function(balance) {
-        assert.equal(balance.valueOf(), TOTAL_TOKENS, "51,000,000 wasn't in the owner account.");
+        assert.equal(balance.valueOf(), TOTAL_TOKENS, "51,100,000 wasn't in the owner account.");
       });
     })
   });
@@ -66,21 +66,21 @@ contract('FastFlow', function(accounts) {
   });
 
   it("Start ICO contract", function() {
-    return ICO.deployed().then(function(crowd) {
-      return crowd.start({from: owner}).then(function() {
+    return ICO.deployed().then(function(ico) {
+      return ico.start({from: owner}).then(function() {
         console.log("ICO started.");
       });
     });
   });
 
 
-  it("Buy 48,999,980 ME Tokens", function() {
+  it("Buy 49,000,000 ME Tokens, without bonus", function() {
     web3.evm.increaseTime(FIVE_DAYS);
 
-    var investSum = web3.toWei(489999.8, "ether");
+    var investSum = web3.toWei(490000, "ether");
     
-    return ICO.deployed().then(function(crowd) {
-       return crowd.sendTransaction({from: buyer, to: crowd.address, value: investSum}).then(function(txn) {
+    return ICO.deployed().then(function(ico) {
+       return ico.sendTransaction({from: buyer, to: ico.address, value: investSum}).then(function(txn) {
           return METoken.deployed().then(function(token) {
             return token.balanceOf.call(buyer);
           });
@@ -88,15 +88,15 @@ contract('FastFlow', function(accounts) {
      }).then(function(balance) {
         console.log("Buyer balance: ", balance.valueOf(), " ME");
 
-        var count = parseInt(investSum * (ME_PER_UBQ) / (web3.toWei(1, "ether")));
-        assert.equal(balance.valueOf(), count, "489999.8 wasn't found in the first account.");
+        var count = investSum * (ME_PER_UBQ) / (web3.toWei(1, "ether"));
+        assert.equal(balance.valueOf(), count, "490,000 wasn't found in the first account.");
      });
   });
 
 
-  it("Try to invoke getRemaintokens {from: owner}", function() {
-    return ICO.deployed().then(function(crowd) {
-       return crowd.getRemaintokens({from: owner}).then(function(txn) {
+  it("Try to invoke getRemainTokens {from: owner}", function() {
+    return ICO.deployed().then(function(ico) {
+       return ico.getRemainTokens({from: owner}).then(function(txn) {
         assert(false, "Throw was supposed to throw but didn't.");
        })
      }).catch(function(error) {
@@ -104,15 +104,16 @@ contract('FastFlow', function(accounts) {
      });
   });
 
-  it("Buy million more ME Tokens", function() {
+
+  it("Buy million more ME Tokens, without bonus", function() {
     return METoken.deployed().then(function(token) {
       return token.balanceOf.call(buyer).then(function(oldBalance) {
-        return ICO.deployed().then(function(crowd) {
-          return crowd.sendTransaction({from: buyer, to: crowd.address, value: web3.toWei(10000, "ether")});
+        return ICO.deployed().then(function(ico) {
+          return ico.sendTransaction({from: buyer, to: ico.address, value: web3.toWei(10000, "ether")});
         }).then(function(txn) {
           return token.balanceOf.call(buyer);
         }).then(function(newBalance) {
-          var count = parseInt(web3.toWei(10000, "ether") * (ME_PER_UBQ) / (web3.toWei(1, "ether")));
+          var count = web3.toWei(10000, "ether") * (ME_PER_UBQ) / (web3.toWei(1, "ether"));
 
           var balanceMustBe = (newBalance.valueOf() - count);
 
@@ -122,22 +123,21 @@ contract('FastFlow', function(accounts) {
     });
   });
 
-
-  it("Invoke getRemaintokens {from: owner}", function() {
+  it("Invoke getRemainTokens {from: owner}", function() {
     return printBalance().then(function() {
 
-    return ICO.deployed().then(function(crowd) {
+    return ICO.deployed().then(function(ico) {
 
-       var logtokensEmittedEvent = crowd.LogtokensEmited();
-        logtokensEmittedEvent.watch(function(err, result) {
+       var logTokensEmittedEvent = ico.LogTokensEmitted();
+        logTokensEmittedEvent.watch(function(err, result) {
           if (err) {
             console.log("Error event ", err);
             return;
           }
-          console.log("LogtokensEmitted event = ",result.args.amount,result.args.from);
+          console.log("LogTokensEmitted event = ",result.args.amount,result.args.from);
         }); 
 
-        var logReceivedUBQ = crowd.LogReceivedUBQ();
+        var logReceivedUBQ = ico.LogReceivedUBQ();
         logReceivedUBQ.watch(function(err, result) {
           if (err) {
             console.log("Error event ", err);
@@ -147,9 +147,9 @@ contract('FastFlow', function(accounts) {
         }); 
 
 
-       return crowd.getRemaintokens({from: owner}).then(function(txn) {
+       return ico.getRemainTokens({from: owner}).then(function(txn) {
           return METoken.deployed().then(function(token) {
-            return token.balanceOf.call(crowd.address);
+            return token.balanceOf.call(ico.address);
           });
        })
      }).then(function(balance) {
@@ -160,8 +160,8 @@ contract('FastFlow', function(accounts) {
   });
 
   it("Finalize ICO", function() {
-    return ICO.deployed().then(function(crowd) {
-      return crowd.finalize({from: owner}).then(function() {
+    return ICO.deployed().then(function(ico) {
+      return ico.finalize({from: owner}).then(function() {
         console.log("Finalize");
       }).then(function() {
         printBalance();   

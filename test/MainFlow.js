@@ -1,13 +1,13 @@
 var METoken = artifacts.require('./METoken.sol');
 var ICO = artifacts.require('./ICO.sol');
 
-var TOTAL_TOKENS = 51000000000000000000;
-var MAX_TARGET = 50000000000000000000;
-var ME_PER_UBQ = 100000000000000000000;
+var TOTAL_TOKENS = 51100000000000000000000000; // 51,100,000 ME
+var MAX_TARGET = 50000000000000000000000000; // 50,000,000 ME
+var ME_PER_UBQ = 100000000000000000000; // 100 ME
 var FIVE_DAYS = 5 * 24 * 60 * 60;
 var TWENTY_FIVE_DAYS = 25 * 24 * 60 * 60;
 var SEND_UBQ =  200000;
-var FIVE_DAY_BONUS = 20;
+var FIVE_DAY_BONUS = 20000000000000000000; // 20 ME
 var RECEIVE_ME_AMOUNT = SEND_UBQ * ME_PER_UBQ + FIVE_DAY_BONUS;
 
 contract('MainFlow', function(accounts) {
@@ -29,11 +29,11 @@ contract('MainFlow', function(accounts) {
   }
 
 
-  it("Put 51,000,000 METokens in the owner account", function() {
+  it("Put 51,100,000 METokens in the owner account", function() {
     return METoken.deployed().then(function(instance) {
       return instance.balanceOf.call(owner);
     }).then(function(balance) {
-      assert.equal(balance.valueOf(), TOTAL_TOKENS, "51,000,000 wasn't in the owner account.");
+      assert.equal(balance.valueOf(), TOTAL_TOKENS, "51,100,000 wasn't in the owner account.");
     });
   });
 
@@ -50,32 +50,32 @@ contract('MainFlow', function(accounts) {
 
 
   it("Start ICO contract", function() {
-    return ICO.deployed().then(function(crowd) {
-      return crowd.start({from: owner}).then(function() {
+    return ICO.deployed().then(function(ico) {
+      return ico.start({from: owner}).then(function() {
         console.log("ICO started");
       });
     });
   });
 
   it("Buy 20,000,020 ME Tokens", function() {
-    return ICO.deployed().then(function(crowd) {
-        var logtokensEmittedEvent = crowd.LogtokensEmitted();
-        logtokensEmittedEvent.watch(function(err, result) {
+    return ICO.deployed().then(function(ico) {
+        var logTokensEmittedEvent = ico.LogTokensEmitted();
+        logTokensEmittedEvent.watch(function(err, result) {
           if (err) {
             console.log("Error event ", err);
             return;
           }
-          console.log("LogtokensEmitted event = ",result.args.amount,result.args.from);
+          console.log("LogTokensEmitted event = ",result.args.amount,result.args.from);
         });
-        var logReceivedUBQ = crowd.LogReceivedUBQ();
-        logReceivedETH.watch(function(err, result) {
+        var logReceivedUBQ = ico.LogReceivedUBQ();
+        logReceivedUBQ.watch(function(err, result) {
           if (err) {
             console.log("Error event ", err);
             return;
           }
           console.log("LogReceivedUBQ event = ",result.args.addr,result.args.value);
         });
-        return crowd.sendTransaction({from: buyer, to: crowd.address, value: web3.toWei(SEND_UBQ, "ether")}).then(function(txn) {
+        return ico.sendTransaction({from: buyer, to: ico.address, value: web3.toWei(SEND_UBQ, "ether")}).then(function(txn) {
           return METoken.deployed().then(function(token) {
             return token.balanceOf.call(buyer);
           });
@@ -89,9 +89,9 @@ contract('MainFlow', function(accounts) {
   it("Try to reserve the payments {from: buyer}", function() {
     return METoken.deployed().then(function(token) {
       return token.balanceOf.call(buyer).then(function(balance) {
-        return ICO.deployed().then(function(crowd) {
+        return ICO.deployed().then(function(ico) {
           console.log('Buyer ME: ' + balance.valueOf());
-          return token.approveAndCall(crowd.address, balance.valueOf(), {from: buyer}).then(function() {
+          return token.approveAndCall(ico.address, balance.valueOf(), {from: buyer}).then(function() {
             assert(false, "Throw was supposed to throw but didn't.");
           })
         }).catch(function(error) {
@@ -102,8 +102,8 @@ contract('MainFlow', function(accounts) {
   });
 
   it("Try to buy too more tokens {from: buyer}", function() {
-    return ICO.deployed().then(function(crowd) {
-       return crowd.sendTransaction({from: buyer, to: crowd.address, value: web3.toWei(MAX_TARGET/ME_PER_UBQ + 1, "ether")}).then(function(txn) {
+    return ICO.deployed().then(function(ico) {
+       return ico.sendTransaction({from: buyer, to: ico.address, value: web3.toWei(MAX_TARGET/ME_PER_UBQ + 1, "ether")}).then(function(txn) {
           assert(false, "Throw was supposed to throw but didn't.");
        })
      }).catch(function(error) {
@@ -113,15 +113,15 @@ contract('MainFlow', function(accounts) {
 
   it("Buy 100,000 ME Tokens without bonus", function() {
     web3.evm.increaseTime(FIVE_DAYS);
-    return ICO.deployed().then(function(crowd) {
-       return crowd.sendTransaction({from: buyer, to: crowd.address, value: web3.toWei(100, "ether")}).then(function(txn) {
+    return ICO.deployed().then(function(ico) {
+       return ico.sendTransaction({from: buyer, to: ico.address, value: web3.toWei(1000, "ether")}).then(function(txn) {
           return METoken.deployed().then(function(token) {
             return token.balanceOf.call(buyer);
           });
        })
      }).then(function(balance) {
         console.log("Buyer balance: ", balance.valueOf(), " ME");
-        assert.equal(balance.valueOf(), RECEIVE_ME_AMOUNT + ME_PER_UBQ, RECEIVE_ME_AMOUNT + ME_PER_UBQ + " wasn't in the first account");
+        assert.equal(balance.valueOf(), RECEIVE_ME_AMOUNT + (1000 * ME_PER_UBQ), RECEIVE_ME_AMOUNT + ME_PER_UBQ + " wasn't in the first account");
      });
   });
 
@@ -144,8 +144,8 @@ contract('MainFlow', function(accounts) {
 
 
   it("Try to buy 100,000 ME Tokens {from: buyer}", function() {
-    return ICO.deployed().then(function(crowd) {
-       return crowd.sendTransaction({from: buyer, to: crowd.address, value: web3.toWei(100, "ether")}).then(function(txn) {
+    return ICO.deployed().then(function(ico) {
+       return ico.sendTransaction({from: buyer, to: ico.address, value: web3.toWei(1000, "ether")}).then(function(txn) {
           assert(false, "Throw was supposed to throw but didn't.");
        })
      }).catch(function(error) {
@@ -154,16 +154,16 @@ contract('MainFlow', function(accounts) {
   });
 
   it("Finalize ICO", function() {
-    return ICO.deployed().then(function(crowd) {
-      return crowd.finalize({from: owner}).then(function() {
+    return ICO.deployed().then(function(ico) {
+      return ico.finalize({from: owner}).then(function() {
         console.log("Finalize");
       });
     });
   });
 
-  it("Try to invoke backMetokenOwner {from: buyer}", function() {
-    return ICO.deployed().then(function(crowd) {
-      return crowd.backMetokenOwner({from: buyer}).then(function() {
+  it("Try to invoke backMETokenOwner {from: buyer}", function() {
+    return ICO.deployed().then(function(ico) {
+      return ico.backMETokenOwner({from: buyer}).then(function() {
         assert(false, "Throw was supposed to throw but didn't.");
       }).catch(function(error) {
         console.log("Throw was happened. Test succeeded.");
@@ -171,9 +171,9 @@ contract('MainFlow', function(accounts) {
     });
   });
 
-  it("Invoke backMetokenOwner {from: ICO contract}", function() {
-    return ICO.deployed().then(function(crowd) {
-      return crowd.backMetokenOwner().then(function() {
+  it("Invoke backMETokenOwner {from: ICO contract}", function() {
+    return ICO.deployed().then(function(ico) {
+      return ico.backMETokenOwner().then(function() {
         return METoken.deployed().then(function(token) {
           return token.owner.call().then(function(tokenOwner) {
             console.log("ME Tokens owner was changed to: " + tokenOwner);
@@ -187,9 +187,9 @@ contract('MainFlow', function(accounts) {
   });
 
 
-  it("Invoke backMetokenOwner one more time {from: ICO contract}", function() {
-    return ICO.deployed().then(function(crowd) {
-      return crowd.backMetokenOwner().then(function() {
+  it("Invoke backMETokenOwner one more time {from: ICO contract}", function() {
+    return ICO.deployed().then(function(ico) {
+      return ico.backMETokenOwner().then(function() {
         assert(false, "Throw was supposed to throw but didn't.");
       }).catch(function(error) {
         console.log("Throw was happened. Test succeeded.");

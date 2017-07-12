@@ -1,12 +1,13 @@
 var METoken = artifacts.require('./METoken.sol');
 var ICO = artifacts.require('./ICO.sol');
 
-var TOTAL_TOKENS = 51000000000000000000;
-var MAX_TARGET = 50000000000000000000;
-var ME_PER_UBQ = 100000000000000000000;
+var TOTAL_TOKENS = 51100000000000000000000000; // 51,100,000 ME
+var MAX_TARGET = 50000000000000000000000000; // 50,000,000 ME
+var ME_PER_UBQ = 100000000000000000000; // 100 ME
 var ICO_ENDS_IN = 30 * 24 * 60 * 60;
 var FIFTEEN_DAYS = 15 * 24 * 60 * 60;
-var FIVE_DAY_BONUS = 20;
+var FIVE_DAY_BONUS = 20000000000000000000; // 20 ME
+var NOVICE_INVEST_BONUS = 30000000000000000000; // 30 ME
 
 contract('RefundFlow', function(accounts) {
 
@@ -34,11 +35,11 @@ contract('RefundFlow', function(accounts) {
   });
 
 
-  it("Put 51,000,000 METokens in the owner account", function() {
+  it("Put 51,100,000 METokens in the owner account", function() {
     return METoken.deployed().then(function(instance) {
       return instance.balanceOf.call(owner);
     }).then(function(balance) {
-      assert.equal(balance.valueOf(), TOTAL_TOKENS, "51,000,000 wasn't in the owner account.");
+      assert.equal(balance.valueOf(), TOTAL_TOKENS, "51,100,000 wasn't in the owner account.");
     });
   });
 
@@ -54,8 +55,8 @@ contract('RefundFlow', function(accounts) {
   });
 
   it("Try to start ICO contract {from: not Owner}", function() {
-    return ICO.deployed().then(function(crowd) {
-      return crowd.start({from: buyer}).then(function() {
+    return ICO.deployed().then(function(ico) {
+      return ico.start({from: buyer}).then(function() {
         assert(false, "Throw was supposed to throw but didn't.");
       }).catch(function(error) {
         console.log("Throw was happened. Test succeeded");
@@ -64,16 +65,16 @@ contract('RefundFlow', function(accounts) {
   });
 
   it("Start ICO contract", function() {
-    return ICO.deployed().then(function(crowd) {
-      return crowd.start({from: owner}).then(function() {
+    return ICO.deployed().then(function(ico) {
+      return ico.start({from: owner}).then(function() {
         console.log("ICO started.");
       });
     });
   });
 
-  it("Try to invest less than MIN_INVEST_UBQ", function() {
-    return ICO.deployed().then(function(crowd) {
-       return crowd.sendTransaction({from: buyer, to: crowd.address, value: web3.toWei(99, "finney")}).then(function(txn) {
+  it("Try to invest < MIN_INVEST_UBQ", function() {
+    return ICO.deployed().then(function(ico) {
+       return ico.sendTransaction({from: buyer, to: ico.address, value: web3.toWei(99, "finney")}).then(function(txn) {
           assert(false, "Throw was supposed to throw but didn't.");
        })
      }).catch(function(error) {
@@ -82,9 +83,9 @@ contract('RefundFlow', function(accounts) {
   });
 
 
-  it("STOP ICO (from: not Owner)", function() {
-    return ICO.deployed().then(function(crowd) {
-      return crowd.emergencyStop({from: buyer}).then(function() {
+  it("Stop ICO (from: not Owner)", function() {
+    return ICO.deployed().then(function(ico) {
+      return ico.pause({from: buyer}).then(function() {
          assert(false, "Throw was supposed to throw but didn't.");
       }).catch(function(error) {
         console.log("Throw was happened. Test succeeded.");
@@ -92,9 +93,9 @@ contract('RefundFlow', function(accounts) {
     });
   });
 
-  it("STOP ICO (from: Owner)", function() {
-    return ICO.deployed().then(function(crowd) {
-      return crowd.emergencyStop({from: owner}).then(function() {
+  it("Stop ICO (from: Owner)", function() {
+    return ICO.deployed().then(function(ico) {
+      return ico.pause({from: owner}).then(function() {
          console.log("ICO stopped by owner. Test succeeded.");
       }).catch(function(error) {
         assert(false, "Throw was supposed to throw but didn't.");
@@ -103,8 +104,8 @@ contract('RefundFlow', function(accounts) {
   });
 
   it("Buy 1,000,000 ME Tokens", function() {
-    return ICO.deployed().then(function(crowd) {
-      return crowd.sendTransaction({from: buyer, to: crowd.address, value: web3.toWei(10000, "ether")}).then(function(txn) {
+    return ICO.deployed().then(function(ico) {
+      return ico.sendTransaction({from: buyer, to: ico.address, value: web3.toWei(10000, "ether")}).then(function(txn) {
         assert(false, "Throw was supposed to throw but didn't.");
       }).catch(function(error) {
         console.log("Throw was happened. Test succeeded.");
@@ -113,8 +114,8 @@ contract('RefundFlow', function(accounts) {
   });
 
   it("Try to release ICO (from: not Owner)", function() {
-    return ICO.deployed().then(function(crowd) {
-      return crowd.release({from: buyer}).then(function() {
+    return ICO.deployed().then(function(ico) {
+      return ico.unpause({from: buyer}).then(function() {
         assert(false, "Throw was supposed to throw but didn't.");
       }).catch(function(error) {
         console.log("Throw was happened. Test succeeded.");
@@ -123,8 +124,8 @@ contract('RefundFlow', function(accounts) {
   });
 
   it("Release ICO (from: Owner)", function() {
-    return ICO.deployed().then(function(crowd) {
-      return crowd.release({from: owner}).then(function() {
+    return ICO.deployed().then(function(ico) {
+      return ico.unpause({from: owner}).then(function() {
         console.log("ICO was released. Test succeeded.");
       }).catch(function(error) {
         assert(false, "Throw was happened, but wasn't expected.");
@@ -132,9 +133,9 @@ contract('RefundFlow', function(accounts) {
     });
   });
 
-  it("Buy 1,000,000 ME Tokens with time bonus", function() {
-    return ICO.deployed().then(function(crowd) {
-       return crowd.sendTransaction({from: buyer, to: crowd.address, value: web3.toWei(10000, "ether")}).then(function(txn) {
+  it("Buy 10,000 ME Tokens with all bonuses", function() {
+    return ICO.deployed().then(function(ico) {
+       return ico.sendTransaction({from: buyer, to: ico.address, value: web3.toWei(100, "ether")}).then(function(txn) {
           return METoken.deployed().then(function(token) {
             return token.balanceOf.call(buyer);
           });
@@ -142,15 +143,15 @@ contract('RefundFlow', function(accounts) {
      }).then(function(balance) {
         console.log("Buyer balance: ", balance.valueOf(), " ME");
 
-        var count = 10000 * ME_PER_UBQ + (10000 * ME_PER_UBQ + FIVE_DAY_BONUS);
-        assert.equal(balance.valueOf(), count, "10000 wasn't in the first account.");
+        var count = 100 * ME_PER_UBQ + FIVE_DAY_BONUS + NOVICE_INVEST_BONUS;
+        assert.equal(balance.valueOf(), count, "100 wasn't in the first account.");
      });
   });
 
 
   it("Try to finalize ICO, when ICO_ENDS_IN isn't reached", function() {
-    return ICO.deployed().then(function(crowd) {
-      return crowd.finalize({from: owner}).then(function() {
+    return ICO.deployed().then(function(ico) {
+      return ico.finalize({from: owner}).then(function() {
         assert(false, "Throw was supposed to throw but didn't.");
       }).catch(function(error) {
         console.log("Throw was happened. Test succeeded.");
@@ -161,8 +162,8 @@ contract('RefundFlow', function(accounts) {
   it("Try to finalize ICO {from: not Owner}}", function() {
     web3.evm.increaseTime(ICO_ENDS_IN);
 
-    return ICO.deployed().then(function(crowd) {
-      return crowd.finalize({from: owner}).then(function() {
+    return ICO.deployed().then(function(ico) {
+      return ico.finalize({from: owner}).then(function() {
         assert(false, "Throw was supposed to throw but didn't.");
       }).catch(function(error) {
         console.log("Throw was happened. Test succeeded.");
@@ -172,8 +173,8 @@ contract('RefundFlow', function(accounts) {
 
   it("Try to finalize ICO, when MIN_TARGET isn't reached", function() {
 
-    return ICO.deployed().then(function(crowd) {
-      return crowd.finalize({from: owner}).then(function() {
+    return ICO.deployed().then(function(ico) {
+      return ico.finalize({from: owner}).then(function() {
         assert(false, "Throw was supposed to throw but didn't.");
       }).catch(function(error) {
         console.log("Throw was happened. Test succeeded.");
@@ -197,11 +198,11 @@ contract('RefundFlow', function(accounts) {
   it("Approve the payments {from: buyer}", function() {
     return METoken.deployed().then(function(token) {
       return token.balanceOf.call(buyer).then(function(balance) {
-        return ICO.deployed().then(function(crowd) {
+        return ICO.deployed().then(function(ico) {
           console.log('Buyer ME: ' + balance.valueOf());
-          return token.approve(crowd.address, balance.valueOf(), {from: buyer}).then(function() {
+          return token.approve(ico.address, balance.valueOf(), {from: buyer}).then(function() {
             console.log("Approve was happened. Test succeeded.");
-            return token.allowance(buyer, crowd.address).then(function(approvedCount) {
+            return token.allowance(buyer, ico.address).then(function(approvedCount) {
               console.log("Approved: " + approvedCount);              
             })
           })
@@ -215,12 +216,12 @@ contract('RefundFlow', function(accounts) {
   it("Reserve the payments {from: buyer}", function() {
     return METoken.deployed().then(function(token) {
       return token.balanceOf.call(buyer).then(function(balance) {
-        return ICO.deployed().then(function(crowd) {
+        return ICO.deployed().then(function(ico) {
           console.log('Buyer ME: ' + balance.valueOf());
           return token.totalSupply().then(function(totalSupply) {
             console.log('TotalSupply ME: ' + totalSupply);
           }).then(function() {
-            return crowd.refund(balance.valueOf(), {from: buyer}).then(function() {
+            return ico.refund(balance.valueOf(), {from: buyer}).then(function() {
               console.log("Reserved. Test succeeded.");
             })
          }).then(function() {
@@ -240,8 +241,8 @@ contract('RefundFlow', function(accounts) {
   it("Finalize ICO, after the passage of 45 days", function() {
     web3.evm.increaseTime(FIFTEEN_DAYS);
 
-    return ICO.deployed().then(function(crowd) {
-      return crowd.finalize({from: owner}).then(function() {
+    return ICO.deployed().then(function(ico) {
+      return ico.finalize({from: owner}).then(function() {
         console.log("Finalize succeeded.");
       });
     });
