@@ -19,7 +19,7 @@ contract ICO is Pausable, PullPayment {
     /* Minimum number of ME Tokens to sell */
     uint public constant MIN_TARGET = 20000000 * 10 ** 18; // 20,000,000 ME
     /* Maximum number of ME Tokens to sell */
-    uint public constant MAX_TARGET = 50000000 * 10 ** 18; // 50,000,000 ME */
+    uint public constant MAX_TARGET = 50000000 * 10 ** 18; // 50,000,000 ME
     /* Number of ME Tokens per Ether */
     uint public constant ME_PER_UBQ = 100 * 10 ** 18; // 100 ME
     /* ICO full run period */
