@@ -18,7 +18,7 @@ ME (Melima) Token use 18 decimals, just like UBQ or ETH
 ```
 
 Totally 51,100,000 tokens will be created on the start. 1,000,000 ME will be reserved for developers and future git pull requests rewards.  
-Another 100,000 ME will be send to developer account, and will be distributed after successful ICO in affiliate program between participants from bitcointalk and other sources (like UBQ slack channel).  
+Another 100,000 ME will be send to developer account, and will be distributed after successful ICO in affiliate program between participants from bitcointalk and other sources (like Ubiq slack channel).  
 Remaining 50,000,000 ME will be send to the ICO contract. At the end remaining tokens will be burned.
 
 ```javascript
