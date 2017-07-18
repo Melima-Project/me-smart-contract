@@ -80,6 +80,8 @@ npm install zeppelin-solidity
 # Go for it
 git clone https://github.com/Melima-Project/me-smart-contract/
 cd me-smart-contract/
+git submodule init
+git submodule update
 truffle compile
 
 # In separate VT tab, running testrpc
